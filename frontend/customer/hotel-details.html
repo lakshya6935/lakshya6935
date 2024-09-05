@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Details — StayLuxe</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <a href="index.html" class="logo">🏨 StayLuxe<span class="dot">.</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="my-bookings.html">My Bookings</a></li>
+      <li id="authNavSlot"></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="container section" id="content">
+  <div class="loader"></div>
+</div>
+
+<script src="../assets/js/common.js"></script>
+<script src="js/customer.js"></script>
+<script>
+  loadNavAuthSlot();
+
+  const params = new URLSearchParams(window.location.search);
+  const hotelId = params.get("id");
+
+  async function loadHotelDetails() {
+    const content = document.getElementById("content");
+    if (!hotelId) { content.innerHTML = "<p>No hotel selected.</p>"; return; }
+
+    const { ok, data } = await apiRequest(`/hotels/${hotelId}`);
+    if (!ok || !data.hotel) {
+      content.innerHTML = `<div class="empty-state"><div class="icon">😕</div><h3>Hotel not found</h3></div>`;
+      return;
+    }
+
+    const hotel = data.hotel;
+    const amenities = (hotel.amenities || []).map(a => `<span class="amenity-pill">${a}</span>`).join("");
+    const roomsHtml = (hotel.rooms || []).map(room => `
+      <div class="card room-card reveal">
+        <img src="${room.image || hotel.image}" alt="${room.room_type}">
+        <div class="room-info">
+          <h3>${room.room_type}</h3>
+          <p style="color:var(--text-muted); font-size:.88rem; margin:6px 0;">Fits up to ${room.capacity} guests · ${room.total_rooms} rooms available</p>
+          <div>${(room.amenities || []).map(a => `<span class="amenity-pill">${a}</span>`).join("")}</div>
+        </div>
+        <div class="room-price">
+          <div class="amount">${formatINR(room.price_per_night)}</div>
+          <div style="font-size:.78rem; color:var(--text-muted); margin-bottom:10px;">per night</div>
+          <button class="btn btn-teal btn-sm" onclick='openBookingModal(${JSON.stringify(room).replace(/'/g, "&apos;")}, ${JSON.stringify(hotel.name)})'>Book Now</button>
+        </div>
+      </div>
+    `).join("") || `<div class="empty-state"><div class="icon">🛏️</div><p>No rooms listed yet.</p></div>`;
+
+    content.innerHTML = `
+      <div class="hotel-hero">
+        <img src="${hotel.image}" alt="${hotel.name}">
+        <div class="overlay">
+          <h1>${hotel.name}</h1>
+          <p>📍 ${hotel.address}, ${hotel.city} &nbsp;•&nbsp; ⭐ ${hotel.rating}</p>
+        </div>
+      </div>
+      <div class="grid" style="grid-template-columns: 2fr 1fr; align-items:start;">
+        <div>
+          <h2 style="margin-bottom:10px;">About this hotel</h2>
+          <p style="color:var(--text-muted); line-height:1.7; margin-bottom:16px;">${hotel.description}</p>
+          <div style="margin-bottom:30px;">${amenities}</div>
+          <h2 style="margin-bottom:16px;">Available Rooms</h2>
+          ${roomsHtml}
+        </div>
+        <div class="card" style="padding:26px;">
+          <h3 style="margin-bottom:10px;">Starting from</h3>
+          <div style="font-size:1.8rem; font-weight:800; color:var(--primary-dark);">${formatINR(hotel.starting_price)}</div>
+          <p style="color:var(--text-muted); font-size:.85rem; margin-bottom:16px;">per night, taxes included</p>
+          <p style="font-size:.85rem; color:var(--text-muted);">Select a room on the left and click "Book Now" to reserve your stay instantly.</p>
+        </div>
+      </div>
+    `;
+    initScrollReveal();
+  }
+
+  function openBookingModal(room, hotelName) {
+    const user = getCurrentUser();
+    if (!user || user.role !== "customer") {
+      showToast("Please login as a customer to book a room.", "info");
+      setTimeout(() => window.location.href = "login.html", 1200);
+      return;
+    }
+
+    openModal(`
+      <h2 style="margin-bottom:6px;">Book ${room.room_type}</h2>
+      <p style="color:var(--text-muted); margin-bottom:20px;">at ${hotelName}</p>
+      <form id="bookingForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Check-in</label>
+            <input type="date" id="checkIn" required>
+          </div>
+          <div class="form-group">
+            <label>Check-out</label>
+            <input type="date" id="checkOut" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Guests</label>
+          <input type="number" id="guests" min="1" max="${room.capacity}" value="1" required>
+          <span class="form-hint">Max ${room.capacity} guests for this room</span>
+        </div>
+        <div style="background:var(--bg-soft); padding:14px 18px; border-radius:14px; margin-bottom:18px;">
+          <strong>${formatINR(room.price_per_night)}</strong> / night
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Confirm Booking 🎉</button>
+      </form>
+    `);
+
+    document.getElementById("bookingForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        hotel_id: hotelId,
+        room_id: room._id,
+        check_in: document.getElementById("checkIn").value,
+        check_out: document.getElementById("checkOut").value,
+        guests: document.getElementById("guests").value,
+      };
+      const { ok, data } = await apiRequest("/bookings", { method: "POST", body: payload, auth: true });
+      if (ok && data.success) {
+        closeModal();
+        showToast("Booking confirmed! Check 'My Bookings'.", "success");
+      } else {
+        showToast(data.message || "Booking failed.", "error");
+      }
+    });
+  }
+
+  loadHotelDetails();
+</script>
+</body>
+</html>

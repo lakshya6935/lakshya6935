@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Bookings — StayLuxe</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <a href="index.html" class="logo">🏨 StayLuxe<span class="dot">.</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="my-bookings.html">My Bookings</a></li>
+      <li id="authNavSlot"></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="container section">
+  <div class="section-heading reveal">
+    <h2>My Bookings</h2>
+    <p>All your reservations in one place.</p>
+  </div>
+  <div id="bookingsList"></div>
+</div>
+
+<script src="../assets/js/common.js"></script>
+<script src="js/customer.js"></script>
+<script>
+  loadNavAuthSlot();
+  requireRole("customer", "login.html");
+  loadBookings();
+
+  async function loadBookings() {
+    const list = document.getElementById("bookingsList");
+    list.innerHTML = `<div class="loader"></div>`;
+    const { ok, data } = await apiRequest("/bookings/my", { auth: true });
+
+    if (!ok || !data.bookings || data.bookings.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">🧾</div><h3>No bookings yet</h3><p>Go book a stay you'll love!</p><br><a href="index.html" class="btn btn-primary">Browse Hotels</a></div>`;
+      return;
+    }
+
+    list.innerHTML = data.bookings.map(b => `
+      <div class="card reveal" style="padding:24px; margin-bottom:18px;">
+        <div class="flex-between" style="flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3>${b.hotel_name}</h3>
+            <p style="color:var(--text-muted); font-size:.88rem;">${b.room_type}</p>
+          </div>
+          <span class="status-chip ${b.status}">${b.status}</span>
+        </div>
+        <div style="margin-top:16px;">
+          <div class="booking-row"><span>Check-in</span><strong>${b.check_in}</strong></div>
+          <div class="booking-row"><span>Check-out</span><strong>${b.check_out}</strong></div>
+          <div class="booking-row"><span>Guests</span><strong>${b.guests}</strong></div>
+          <div class="booking-row"><span>Nights</span><strong>${b.nights}</strong></div>
+          <div class="booking-row"><span>Total Price</span><strong style="color:var(--primary-dark);">${formatINR(b.total_price)}</strong></div>
+        </div>
+        ${b.status === "confirmed" ? `<button class="btn btn-danger btn-sm" style="margin-top:14px;" onclick="cancelBooking('${b._id}')">Cancel Booking</button>` : ""}
+      </div>
+    `).join("");
+    initScrollReveal();
+  }
+
+  async function cancelBooking(id) {
+    const { ok, data } = await apiRequest(`/bookings/${id}/cancel`, { method: "PUT", auth: true });
+    if (ok && data.success) {
+      showToast("Booking cancelled.", "success");
+      loadBookings();
+    } else {
+      showToast(data.message || "Could not cancel booking.", "error");
+    }
+  }
+</script>
+</body>
+</html>

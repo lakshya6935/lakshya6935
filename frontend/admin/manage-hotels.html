@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Hotels — StayLuxe Admin</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-body">
+
+<div class="dash-shell">
+  <aside class="sidebar">
+    <div class="logo-side">🛡️ StayLuxe Admin</div>
+    <div class="sidebar-links"></div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="mobile-topbar">
+      <button class="mobile-toggle nav-toggle" style="color:var(--primary-dark);">☰</button>
+      <strong>StayLuxe Admin</strong>
+      <span></span>
+    </div>
+    <div class="dash-topbar">
+      <h1>Manage Hotels</h1>
+      <select id="statusFilter" onchange="loadHotels()" style="padding:10px 16px; border-radius:30px; border:2px solid #ece4fb;">
+        <option value="">All</option>
+        <option value="approved">Approved</option>
+        <option value="pending">Pending</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+
+    <div class="table-card" style="padding:10px;">
+      <div id="hotelsTable"><div class="loader"></div></div>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/js/common.js"></script>
+<script src="js/admin.js"></script>
+<script>
+  renderAdminSidebar("manage-hotels.html");
+  loadHotels();
+
+  async function loadHotels() {
+    const el = document.getElementById("hotelsTable");
+    const status = document.getElementById("statusFilter").value;
+    const { ok, data } = await apiRequest(`/admin/hotels${status ? "?status=" + status : ""}`, { auth: true });
+    if (!ok || !data.hotels.length) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">🏨</div><p>No hotels found.</p></div>`;
+      return;
+    }
+    el.innerHTML = `<table>
+      <thead><tr><th>Hotel</th><th>City</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        ${data.hotels.map(h => `<tr>
+          <td>${h.name}</td><td>${h.city}</td><td>${formatINR(h.starting_price)}</td>
+          <td><span class="pill ${h.status}">${h.status}</span></td>
+          <td>
+            ${h.status !== "approved" ? `<button class="btn btn-teal btn-sm" onclick="setStatus('${h._id}','approved')">Approve</button>` : ""}
+            ${h.status !== "rejected" ? `<button class="btn btn-outline btn-sm" onclick="setStatus('${h._id}','rejected')">Reject</button>` : ""}
+            <button class="btn btn-danger btn-sm" onclick="deleteHotel('${h._id}')">Delete</button>
+          </td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+  }
+
+  async function setStatus(id, status) {
+    const { ok, data } = await apiRequest(`/admin/hotels/${id}/status`, { method: "PUT", body: { status }, auth: true });
+    if (ok) { showToast(`Hotel ${status}.`, "success"); loadHotels(); }
+    else showToast(data.message || "Failed.", "error");
+  }
+
+  async function deleteHotel(id) {
+    if (!confirm("Delete this hotel permanently?")) return;
+    const { ok, data } = await apiRequest(`/hotels/${id}`, { method: "DELETE", auth: true });
+    if (ok) { showToast("Hotel deleted.", "success"); loadHotels(); }
+    else showToast(data.message || "Failed.", "error");
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bookings — StayLuxe Owner</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-body">
+
+<div class="dash-shell">
+  <aside class="sidebar">
+    <div class="logo-side">🏢 StayLuxe Owner</div>
+    <div class="sidebar-links"></div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="mobile-topbar">
+      <button class="mobile-toggle nav-toggle" style="color:var(--primary-dark);">☰</button>
+      <strong>StayLuxe Owner</strong>
+      <span></span>
+    </div>
+    <div class="dash-topbar">
+      <h1>Bookings for Your Hotels</h1>
+    </div>
+
+    <div class="table-card" style="padding: 10px;">
+      <div id="bookingsTable"><div class="loader"></div></div>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/js/common.js"></script>
+<script src="js/owner.js"></script>
+<script>
+  renderOwnerSidebar("manage-bookings.html");
+  loadBookings();
+
+  async function loadBookings() {
+    const el = document.getElementById("bookingsTable");
+    const { ok, data } = await apiRequest("/owner/bookings", { auth: true });
+    if (!ok || !data.bookings.length) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>No bookings yet.</p></div>`;
+      return;
+    }
+    el.innerHTML = `<table>
+      <thead><tr><th>Guest</th><th>Hotel</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Total</th><th>Status</th></tr></thead>
+      <tbody>
+        ${data.bookings.map(b => `<tr>
+          <td>${b.customer_name}<br><span style="color:var(--text-muted); font-size:.78rem;">${b.customer_email}</span></td>
+          <td>${b.hotel_name}</td>
+          <td>${b.room_type}</td>
+          <td>${b.check_in}</td>
+          <td>${b.check_out}</td>
+          <td>${formatINR(b.total_price)}</td>
+          <td><span class="pill ${b.status}">${b.status}</span></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+  }
+</script>
+</body>
+</html>

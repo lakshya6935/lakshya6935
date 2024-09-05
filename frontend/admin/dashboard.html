@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — StayLuxe</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-body">
+
+<div class="dash-shell">
+  <aside class="sidebar">
+    <div class="logo-side">🛡️ StayLuxe Admin</div>
+    <div class="sidebar-links"></div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="mobile-topbar">
+      <button class="mobile-toggle nav-toggle" style="color:var(--primary-dark);">☰</button>
+      <strong>StayLuxe Admin</strong>
+      <span></span>
+    </div>
+    <div class="dash-topbar">
+      <h1>Welcome, <span class="admin-name-slot"></span> 🛡️</h1>
+      <span class="welcome-pill">Full Platform Control</span>
+    </div>
+
+    <div class="stat-grid" id="statGrid"><div class="loader"></div></div>
+
+    <div class="table-card" style="padding:20px;">
+      <h3 style="margin-bottom:14px;">⏳ Hotels Pending Approval</h3>
+      <div id="pendingHotels"></div>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/js/common.js"></script>
+<script src="js/admin.js"></script>
+<script>
+  renderAdminSidebar("dashboard.html");
+  loadStats();
+  loadPendingHotels();
+
+  async function loadStats() {
+    const grid = document.getElementById("statGrid");
+    const { ok, data } = await apiRequest("/admin/stats", { auth: true });
+    if (!ok) { grid.innerHTML = "<p>Could not load stats.</p>"; return; }
+    const s = data.stats;
+    grid.innerHTML = `
+      <div class="stat-card"><div class="icon">👤</div><div class="value">${s.total_customers}</div><div class="label">Customers</div></div>
+      <div class="stat-card"><div class="icon">🏢</div><div class="value">${s.total_owners}</div><div class="label">Approved Owners</div></div>
+      <div class="stat-card"><div class="icon">⏳</div><div class="value">${s.pending_owners}</div><div class="label">Pending Owners</div></div>
+      <div class="stat-card"><div class="icon">🏨</div><div class="value">${s.total_hotels}</div><div class="label">Live Hotels</div></div>
+      <div class="stat-card"><div class="icon">📥</div><div class="value">${s.pending_hotels}</div><div class="label">Pending Hotels</div></div>
+      <div class="stat-card"><div class="icon">📅</div><div class="value">${s.total_bookings}</div><div class="label">Total Bookings</div></div>
+      <div class="stat-card"><div class="icon">💰</div><div class="value">${formatINR(s.total_revenue)}</div><div class="label">Platform Revenue</div></div>
+    `;
+  }
+
+  async function loadPendingHotels() {
+    const el = document.getElementById("pendingHotels");
+    const { ok, data } = await apiRequest("/admin/hotels?status=pending", { auth: true });
+    if (!ok || !data.hotels.length) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>No hotels awaiting approval.</p></div>`;
+      return;
+    }
+    el.innerHTML = `<table>
+      <thead><tr><th>Hotel</th><th>City</th><th>Price</th><th>Action</th></tr></thead>
+      <tbody>
+        ${data.hotels.map(h => `<tr>
+          <td>${h.name}</td><td>${h.city}</td><td>${formatINR(h.starting_price)}</td>
+          <td>
+            <button class="btn btn-teal btn-sm" onclick="approveHotel('${h._id}')">Approve</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectHotel('${h._id}')">Reject</button>
+          </td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+  }
+
+  async function approveHotel(id) {
+    const { ok, data } = await apiRequest(`/admin/hotels/${id}/status`, { method: "PUT", body: { status: "approved" }, auth: true });
+    if (ok) { showToast("Hotel approved!", "success"); loadPendingHotels(); loadStats(); }
+    else showToast(data.message || "Failed.", "error");
+  }
+  async function rejectHotel(id) {
+    const { ok, data } = await apiRequest(`/admin/hotels/${id}/status`, { method: "PUT", body: { status: "rejected" }, auth: true });
+    if (ok) { showToast("Hotel rejected.", "info"); loadPendingHotels(); loadStats(); }
+    else showToast(data.message || "Failed.", "error");
+  }
+</script>
+</body>
+</html>

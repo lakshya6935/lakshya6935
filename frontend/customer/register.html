@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register — StayLuxe</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .auth-wrap { min-height: 90vh; display:flex; align-items:center; justify-content:center; background: var(--gradient-soft); padding: 40px 16px; }
+  .auth-header { text-align:center; margin-bottom: 26px; }
+  .auth-header .icon { font-size: 2.4rem; }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <a href="index.html" class="logo">🏨 StayLuxe<span class="dot">.</span></a>
+  </div>
+</nav>
+
+<div class="auth-wrap">
+  <div class="form-card">
+    <div class="auth-header">
+      <div class="icon float">🧳</div>
+      <h2>Create Your Account</h2>
+      <p style="color:var(--text-muted);">Join StayLuxe and start booking</p>
+    </div>
+    <form id="registerForm">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="name" required placeholder="Your full name">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="email" required placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" id="phone" placeholder="10-digit mobile number">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" required placeholder="At least 6 characters">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+    </form>
+    <p style="text-align:center; margin-top:20px; color:var(--text-muted);">
+      Already have an account? <a href="login.html" style="color:var(--primary-dark); font-weight:700;">Login</a>
+    </p>
+  </div>
+</div>
+
+<script src="../assets/js/common.js"></script>
+<script>
+  document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = {
+      name: document.getElementById("name").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      phone: document.getElementById("phone").value.trim(),
+      password: document.getElementById("password").value,
+      role: "customer",
+    };
+    const { ok, data } = await apiRequest("/auth/register", { method: "POST", body: payload });
+    if (ok && data.success) {
+      showToast("Account created! Please log in.", "success");
+      setTimeout(() => window.location.href = "login.html", 1000);
+    } else {
+      showToast(data.message || "Registration failed.", "error");
+    }
+  });
+</script>
+</body>
+</html>

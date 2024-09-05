@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register as Hotel Owner — StayLuxe</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<style>
+  body { background: var(--gradient-soft); }
+  .auth-wrap { min-height: 100vh; display:flex; align-items:center; justify-content:center; padding: 40px 16px; }
+  .auth-header { text-align:center; margin-bottom: 26px; }
+  .auth-header .icon { font-size: 2.4rem; }
+</style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="form-card">
+    <div class="auth-header">
+      <div class="icon float">🏗️</div>
+      <h2>List Your Hotel</h2>
+      <p style="color:var(--text-muted);">Register as a StayLuxe hotel owner partner</p>
+    </div>
+    <form id="registerForm">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="name" required placeholder="Your full name">
+      </div>
+      <div class="form-group">
+        <label>Business Email</label>
+        <input type="email" id="email" required placeholder="you@yourhotel.com">
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" id="phone" placeholder="10-digit mobile number">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" required placeholder="At least 6 characters">
+      </div>
+      <button type="submit" class="btn btn-teal btn-block">Submit Application</button>
+      <p class="form-hint" style="text-align:center; margin-top:10px;">Your account will be reviewed and approved by our admin team before you can log in.</p>
+    </form>
+    <p style="text-align:center; margin-top:16px; color:var(--text-muted);">
+      Already an approved partner? <a href="login.html" style="color:var(--teal-dark); font-weight:700;">Login</a>
+    </p>
+  </div>
+</div>
+
+<script src="../assets/js/common.js"></script>
+<script>
+  document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = {
+      name: document.getElementById("name").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      phone: document.getElementById("phone").value.trim(),
+      password: document.getElementById("password").value,
+      role: "owner",
+    };
+    const { ok, data } = await apiRequest("/auth/register", { method: "POST", body: payload });
+    if (ok && data.success) {
+      showToast(data.message, "success", 5000);
+      setTimeout(() => window.location.href = "login.html", 2200);
+    } else {
+      showToast(data.message || "Registration failed.", "error");
+    }
+  });
+</script>
+</body>
+</html>

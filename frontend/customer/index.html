@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StayLuxe — Find Your Perfect Stay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <a href="index.html" class="logo">🏨 StayLuxe<span class="dot">.</span></a>
+    <button class="nav-toggle">☰</button>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="#hotels">Hotels</a></li>
+      <li><a href="my-bookings.html">My Bookings</a></li>
+      <li id="authNavSlot"></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container">
+    <h1>Find Your Perfect Stay Across India</h1>
+    <p>Handpicked hotels, transparent pricing in ₹, and instant confirmation — book your next getaway in seconds.</p>
+    <div class="search-bar">
+      <div class="form-group">
+        <label>City</label>
+        <input type="text" id="searchCity" placeholder="e.g. Jaipur, Goa, Manali">
+      </div>
+      <div class="form-group">
+        <label>Max Price / night</label>
+        <input type="number" id="searchPrice" placeholder="e.g. 5000">
+      </div>
+      <button class="btn btn-primary" onclick="searchHotels()">🔍 Search Hotels</button>
+    </div>
+  </div>
+</header>
+
+<section class="section hotels-section" id="hotels">
+  <div class="container">
+    <div class="section-heading reveal">
+      <h2>Popular Hotels</h2>
+      <p>Beautiful stays, priced honestly in Indian Rupees.</p>
+    </div>
+    <div id="hotelGrid" class="grid hotel-grid"></div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div>
+      <h4>StayLuxe</h4>
+      <p style="max-width:260px; color:#c9bffc;">Beautiful stays, transparent pricing, instant booking — all across India.</p>
+    </div>
+    <div>
+      <h4>Explore</h4>
+      <p><a href="index.html">Home</a></p>
+      <p><a href="#hotels">Hotels</a></p>
+      <p><a href="my-bookings.html">My Bookings</a></p>
+    </div>
+    <div>
+      <h4>Account</h4>
+      <p><a href="login.html">Customer Login</a></p>
+      <p><a href="register.html">Create Account</a></p>
+    </div>
+    <div>
+      <h4>Partner With Us</h4>
+      <p><a href="../owner/register.html">List your hotel as an Owner</a></p>
+      <p><a href="../owner/login.html">Hotel Owner Login</a></p>
+    </div>
+  </div>
+  <div class="bottom">&copy; 2026 StayLuxe Hotel Management System. All rights reserved.</div>
+</footer>
+
+<script src="../assets/js/common.js"></script>
+<script src="js/customer.js"></script>
+<script>
+  loadNavAuthSlot();
+  loadHotels();
+
+  function searchHotels() {
+    const city = document.getElementById("searchCity").value.trim();
+    const price = document.getElementById("searchPrice").value.trim();
+    loadHotels({ city, max_price: price });
+  }
+</script>
+</body>
+</html>

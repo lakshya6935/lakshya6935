@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Hotels — StayLuxe Owner</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-body">
+
+<div class="dash-shell">
+  <aside class="sidebar">
+    <div class="logo-side">🏢 StayLuxe Owner</div>
+    <div class="sidebar-links"></div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="mobile-topbar">
+      <button class="mobile-toggle nav-toggle" style="color:var(--primary-dark);">☰</button>
+      <strong>StayLuxe Owner</strong>
+      <span></span>
+    </div>
+    <div class="dash-topbar">
+      <h1>My Hotels</h1>
+      <button class="btn btn-teal" onclick="openAddHotelModal()">+ Add New Hotel</button>
+    </div>
+
+    <div id="hotelsList" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px,1fr));">
+      <div class="loader"></div>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/js/common.js"></script>
+<script src="js/owner.js"></script>
+<script>
+  renderOwnerSidebar("add-hotel.html");
+  loadMyHotels();
+
+  async function loadMyHotels() {
+    const list = document.getElementById("hotelsList");
+    const { ok, data } = await apiRequest("/owner/hotels", { auth: true });
+    if (!ok || !data.hotels.length) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">🏗️</div><p>No hotels yet. Add your first property!</p></div>`;
+      return;
+    }
+    list.innerHTML = data.hotels.map(h => `
+      <div class="card" style="padding:0;">
+        <div style="height:150px; overflow:hidden;"><img src="${h.image}" style="width:100%; height:100%; object-fit:cover;"></div>
+        <div style="padding:18px;">
+          <div class="flex-between"><h3>${h.name}</h3><span class="pill ${h.status}">${h.status}</span></div>
+          <p style="color:var(--text-muted); font-size:.85rem; margin:6px 0;">📍 ${h.city} · ${formatINR(h.starting_price)}/night</p>
+          <div class="flex" style="gap:10px; margin-top:12px;">
+            <button class="btn btn-outline btn-sm" onclick='openAddRoomModal("${h._id}", "${h.name}")'>+ Add Room</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteHotel('${h._id}')">Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function openAddHotelModal() {
+    openModal(`
+      <h2 style="margin-bottom:18px;">Add New Hotel</h2>
+      <form id="addHotelForm">
+        <div class="form-group"><label>Hotel Name</label><input type="text" id="h_name" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>City</label><input type="text" id="h_city" required></div>
+          <div class="form-group"><label>Starting Price (₹/night)</label><input type="number" id="h_price" required></div>
+        </div>
+        <div class="form-group"><label>Address</label><input type="text" id="h_address" required></div>
+        <div class="form-group"><label>Description</label><textarea id="h_desc" rows="3" required></textarea></div>
+        <div class="form-group"><label>Image URL</label><input type="url" id="h_image" placeholder="https://images.unsplash.com/..."></div>
+        <div class="form-group"><label>Amenities (comma separated)</label><input type="text" id="h_amenities" placeholder="Free WiFi, Pool, Spa"></div>
+        <button type="submit" class="btn btn-teal btn-block">Submit for Approval</button>
+      </form>
+    `);
+    document.getElementById("addHotelForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById("h_name").value.trim(),
+        city: document.getElementById("h_city").value.trim(),
+        address: document.getElementById("h_address").value.trim(),
+        description: document.getElementById("h_desc").value.trim(),
+        starting_price: document.getElementById("h_price").value,
+        image: document.getElementById("h_image").value.trim(),
+        amenities: document.getElementById("h_amenities").value.split(",").map(a => a.trim()).filter(Boolean),
+      };
+      const { ok, data } = await apiRequest("/hotels", { method: "POST", body: payload, auth: true });
+      if (ok && data.success) {
+        closeModal();
+        showToast(data.message, "success");
+        loadMyHotels();
+      } else {
+        showToast(data.message || "Failed to add hotel.", "error");
+      }
+    });
+  }
+
+  function openAddRoomModal(hotelId, hotelName) {
+    openModal(`
+      <h2 style="margin-bottom:6px;">Add Room</h2>
+      <p style="color:var(--text-muted); margin-bottom:18px;">to ${hotelName}</p>
+      <form id="addRoomForm">
+        <div class="form-group"><label>Room Type</label><input type="text" id="r_type" placeholder="Deluxe Room" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Price per night (₹)</label><input type="number" id="r_price" required></div>
+          <div class="form-group"><label>Capacity (guests)</label><input type="number" id="r_capacity" value="2" required></div>
+        </div>
+        <div class="form-group"><label>Total Rooms Available</label><input type="number" id="r_total" value="5" required></div>
+        <div class="form-group"><label>Image URL</label><input type="url" id="r_image" placeholder="https://images.unsplash.com/..."></div>
+        <button type="submit" class="btn btn-teal btn-block">Add Room</button>
+      </form>
+    `);
+    document.getElementById("addRoomForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        room_type: document.getElementById("r_type").value.trim(),
+        price_per_night: document.getElementById("r_price").value,
+        capacity: document.getElementById("r_capacity").value,
+        total_rooms: document.getElementById("r_total").value,
+        image: document.getElementById("r_image").value.trim(),
+      };
+      const { ok, data } = await apiRequest(`/hotels/${hotelId}/rooms`, { method: "POST", body: payload, auth: true });
+      if (ok && data.success) {
+        closeModal();
+        showToast("Room added!", "success");
+      } else {
+        showToast(data.message || "Failed to add room.", "error");
+      }
+    });
+  }
+
+  async function deleteHotel(id) {
+    if (!confirm("Delete this hotel and all its rooms?")) return;
+    const { ok, data } = await apiRequest(`/hotels/${id}`, { method: "DELETE", auth: true });
+    if (ok && data.success) {
+      showToast("Hotel deleted.", "success");
+      loadMyHotels();
+    } else {
+      showToast(data.message || "Failed to delete.", "error");
+    }
+  }
+</script>
+</body>
+</html>

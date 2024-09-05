@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Users — StayLuxe Admin</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-body">
+
+<div class="dash-shell">
+  <aside class="sidebar">
+    <div class="logo-side">🛡️ StayLuxe Admin</div>
+    <div class="sidebar-links"></div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="mobile-topbar">
+      <button class="mobile-toggle nav-toggle" style="color:var(--primary-dark);">☰</button>
+      <strong>StayLuxe Admin</strong>
+      <span></span>
+    </div>
+    <div class="dash-topbar">
+      <h1>Manage Users</h1>
+      <select id="roleFilter" onchange="loadUsers()" style="padding:10px 16px; border-radius:30px; border:2px solid #ece4fb;">
+        <option value="">All Roles</option>
+        <option value="customer">Customers</option>
+        <option value="owner">Hotel Owners</option>
+      </select>
+    </div>
+
+    <div class="table-card" style="padding:10px;">
+      <div id="usersTable"><div class="loader"></div></div>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/js/common.js"></script>
+<script src="js/admin.js"></script>
+<script>
+  renderAdminSidebar("manage-users.html");
+  loadUsers();
+
+  async function loadUsers() {
+    const el = document.getElementById("usersTable");
+    const role = document.getElementById("roleFilter").value;
+    const { ok, data } = await apiRequest(`/admin/users${role ? "?role=" + role : ""}`, { auth: true });
+    if (!ok || !data.users.length) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>No users found.</p></div>`;
+      return;
+    }
+    el.innerHTML = `<table>
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        ${data.users.map(u => `<tr>
+          <td>${u.name}</td><td>${u.email}</td><td style="text-transform:capitalize;">${u.role}</td>
+          <td><span class="pill ${u.status}">${u.status}</span></td>
+          <td>
+            ${u.status === "pending" ? `<button class="btn btn-teal btn-sm" onclick="setUserStatus('${u._id}','active')">Approve</button>` : ""}
+            ${u.status !== "blocked" ? `<button class="btn btn-outline btn-sm" onclick="setUserStatus('${u._id}','blocked')">Block</button>` : `<button class="btn btn-teal btn-sm" onclick="setUserStatus('${u._id}','active')">Unblock</button>`}
+            <button class="btn btn-danger btn-sm" onclick="deleteUser('${u._id}')">Delete</button>
+          </td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+  }
+
+  async function setUserStatus(id, status) {
+    const { ok, data } = await apiRequest(`/admin/users/${id}/status`, { method: "PUT", body: { status }, auth: true });
+    if (ok) { showToast("User status updated.", "success"); loadUsers(); }
+    else showToast(data.message || "Failed.", "error");
+  }
+
+  async function deleteUser(id) {
+    if (!confirm("Delete this user permanently?")) return;
+    const { ok, data } = await apiRequest(`/admin/users/${id}`, { method: "DELETE", auth: true });
+    if (ok) { showToast("User deleted.", "success"); loadUsers(); }
+    else showToast(data.message || "Failed.", "error");
+  }
+</script>
+</body>
+</html>

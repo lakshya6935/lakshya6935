@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Dashboard — StayLuxe</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/common.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-body">
+
+<div class="dash-shell">
+  <aside class="sidebar">
+    <div class="logo-side">🏢 StayLuxe Owner</div>
+    <div class="sidebar-links"></div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="mobile-topbar">
+      <button class="mobile-toggle nav-toggle" style="color:var(--primary-dark);">☰</button>
+      <strong>StayLuxe Owner</strong>
+      <span></span>
+    </div>
+    <div class="dash-topbar">
+      <h1>Welcome, <span class="owner-name-slot"></span> 👋</h1>
+      <span class="welcome-pill">🏨 Hotel Owner Panel</span>
+    </div>
+
+    <div class="stat-grid" id="statGrid">
+      <div class="loader"></div>
+    </div>
+
+    <div class="table-card" style="padding: 20px;">
+      <h3 style="margin-bottom: 14px;">Your Hotels</h3>
+      <div id="hotelsPreview"></div>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/js/common.js"></script>
+<script src="js/owner.js"></script>
+<script>
+  renderOwnerSidebar("dashboard.html");
+  loadStats();
+  loadHotelsPreview();
+
+  async function loadStats() {
+    const grid = document.getElementById("statGrid");
+    const { ok, data } = await apiRequest("/owner/stats", { auth: true });
+    if (!ok) { grid.innerHTML = "<p>Could not load stats.</p>"; return; }
+    const s = data.stats;
+    grid.innerHTML = `
+      <div class="stat-card"><div class="icon">🏨</div><div class="value">${s.total_hotels}</div><div class="label">Total Hotels</div></div>
+      <div class="stat-card"><div class="icon">📅</div><div class="value">${s.total_bookings}</div><div class="label">Total Bookings</div></div>
+      <div class="stat-card"><div class="icon">💰</div><div class="value">${formatINR(s.total_revenue)}</div><div class="label">Total Revenue</div></div>
+    `;
+  }
+
+  async function loadHotelsPreview() {
+    const el = document.getElementById("hotelsPreview");
+    const { ok, data } = await apiRequest("/owner/hotels", { auth: true });
+    if (!ok || !data.hotels.length) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">🏗️</div><p>You haven't added any hotels yet.</p><br><a href="add-hotel.html" class="btn btn-teal">+ Add Your First Hotel</a></div>`;
+      return;
+    }
+    el.innerHTML = `<table>
+      <thead><tr><th>Hotel</th><th>City</th><th>Price/night</th><th>Status</th></tr></thead>
+      <tbody>
+        ${data.hotels.map(h => `<tr>
+          <td>${h.name}</td><td>${h.city}</td><td>${formatINR(h.starting_price)}</td>
+          <td><span class="pill ${h.status}">${h.status}</span></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+  }
+</script>
+</body>
+</html>
