@@ -2,8 +2,7 @@
    StayLuxe — Shared frontend utilities
    Used by customer, admin and owner interfaces alike.
    =========================================================== */
-
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = "https://hotel-management-system-jssb.onrender.com/api";
 
 /* ---------- Toast notifications ---------- */
 function ensureToastContainer() {
